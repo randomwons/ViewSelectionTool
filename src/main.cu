@@ -64,16 +64,16 @@ __global__ void generateRays(Ray* rays, int width, int height, double* intrinsic
     // dy /= norm;
     // dz /= norm;
 
-    dx = pose[0 * 4 + 0] * dx + pose[1 * 4 + 0] * dy + pose[2 * 4 + 0] * dz;
-    dy = pose[0 * 4 + 1] * dx + pose[1 * 4 + 1] * dy + pose[2 * 4 + 1] * dz;
-    dz = pose[0 * 4 + 2] * dx + pose[1 * 4 + 2] * dy + pose[2 * 4 + 2] * dz;
+    double worlddx = pose[0 * 4 + 0] * dx + pose[1 * 4 + 0] * dy + pose[2 * 4 + 0] * dz;
+    double worlddy = pose[0 * 4 + 1] * dx + pose[1 * 4 + 1] * dy + pose[2 * 4 + 1] * dz;
+    double worlddz = pose[0 * 4 + 2] * dx + pose[1 * 4 + 2] * dy + pose[2 * 4 + 2] * dz;
     // dx = pose[0 * 4 + 0] * dx + pose[0 * 4 + 1] * dy + pose[0 * 4 + 2] * dz;
     // dy = pose[1 * 4 + 0] * dx + pose[1 * 4 + 1] * dy + pose[1 * 4 + 2] * dz;
     // dz = pose[2 * 4 + 0] * dx + pose[2 * 4 + 1] * dy + pose[2 * 4 + 2] * dz;
-        double norm = norm3d(dx, dy, dz);
-    dx /= norm;
-    dy /= norm;
-    dz /= norm;
+        double norm = norm3d(worlddx, worlddy, worlddz);
+    worlddx /= norm;
+    worlddy /= norm;
+    worlddz /= norm;
     // double ox = pose[0 * 4 + 3];
     // double oy = pose[1 * 4 + 3];
     // double oz = pose[2 * 4 + 3];
@@ -83,7 +83,7 @@ __global__ void generateRays(Ray* rays, int width, int height, double* intrinsic
 
     int pid = y * width + x;
     rays[pid].o = make_double3(ox, oy, oz);
-    rays[pid].d = make_double3(dx, dy, dz);
+    rays[pid].d = make_double3(worlddx, worlddy, worlddz);
 
     if(threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
         for(int i = 0; i < 4; i++){
