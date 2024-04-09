@@ -11,6 +11,9 @@ public:
     Image(const std::string& filepath) {
 
         data = stbi_load(filepath.c_str(), &width_, & height_, &channel_, 0);
+        if(!data) {
+            printf("[Image] Failed to open file %s\n", filepath);
+        }
 
     }
     ~Image() {
