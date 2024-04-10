@@ -2,6 +2,10 @@
 #include <iostream>
 #include <string>
 
+#include <thrust/device_ptr.h>
+#include <thrust/device_new.h>
+#include <thrust/device_free.h>
+
 #include "loader/depth.h"
 #include "loader/image.h"
 #include "loader/intrinsic.h"
@@ -14,65 +18,43 @@ struct Ray {
 
 class Octree {
 public:
-    float3 min, max, center;
+    double3 min, max, center;
     float resolution;
 
-    __device__ __host__ Octree(float3 min, float3 max, float resolution) 
+    __device__ __host__ Octree(double3 min, double3 max, float resolution) 
         : min(min), max(max), resolution(resolution) {
-            center = make_float3((max.x - min.x) / 2, (max.y - min.y) / 2, (max.z - min.z) / 2); 
+            center = make_double3((max.x + min.x) / 2, (max.y + min.y) / 2, (max.z + min.z) / 2); 
          }
 
-    __device__ bool traverse(const Ray& ray) {
-        
-        // double3 center = make_double3(0, 0, 0);
-        // double radius = 0.1;
-
-        // double3 oc = make_double3(ray.o.x - center.x, ray.o.y - center.y, ray.o.z - center.z);
-        // double a = ray.d.x * ray.d.x + ray.d.y * ray.d.y + ray.d.z * ray.d.z;
-        // double b = 2. * (oc.x * ray.d.x + oc.y * ray.d.y + oc.z * ray.d.z);
-        // double c = oc.x * oc.x + oc.y * oc.y + oc.z * oc.z - radius * radius;
-
-        // double dis = b*b - 4*a*c;
-        // return (dis >= 0);
-
-        double rayorix;
-        double rayoriy;
-        double rayoriz;
-
-        double rayInvDirx;
-        double rayInvDiry;
-        double rayInvDirz;
+    __device__ bool traverse(Ray& ray) {
 
         if(ray.d.x < 0.0f){
-            rayorix = center.x * 2.0f - ray.o.x;
-            rayInvDirx = -(1 / ray.d.x);
-        } else {
-            rayorix = ray.o.x;
-            rayInvDirx = 1 / ray.d.x; 
+            ray.o.x = center.x * 2.0f - ray.o.x;
+            ray.d.x = -ray.d.x;
         }
         if(ray.d.y < 0.0f){
-            rayoriy = center.y * 2.0f - ray.o.y;
-            rayInvDiry = -(1 / ray.d.y);
-        } else {
-            rayoriy = ray.o.y;
-            rayInvDiry = 1 / ray.d.y; 
+            ray.o.y = center.y * 2.0f - ray.o.y;
+            ray.d.y = -ray.d.y;
         }
         if(ray.d.z < 0.0f){
-            rayoriz = center.z * 2.0f - ray.o.z;
-            rayInvDirz = -(1 / ray.d.z);
-        } else {
-            rayoriz = ray.o.z;
-            rayInvDirz = 1 / ray.d.z; 
+            ray.o.z = center.z * 2.0f - ray.o.z;
+            ray.d.z = -ray.d.z;
         }
-
-        const float tx0 = (min.x - rayorix) * rayInvDirx;
-        const float tx1 = (max.x - rayorix) * rayInvDirx;
-        const float ty0 = (min.y - rayoriy) * rayInvDiry;
-        const float ty1 = (max.y - rayoriy) * rayInvDiry;
-        const float tz0 = (min.z - rayoriz) * rayInvDirz;
-        const float tz1 = (max.z - rayoriz) * rayInvDirz;
-
-        if(fmaxf(fmaxf(tx0, ty0), tz0) < fminf(fminf(tx1, ty1), tz1)) return true;
+    
+        const double tx0 = (ray.d.x == 0) ? DBL_MIN : (min.x - ray.o.x) * (1 / ray.d.x);
+        const double tx1 = (ray.d.x == 0) ? DBL_MAX : (max.x - ray.o.x) * (1 / ray.d.x);
+        const double ty0 = (ray.d.y == 0) ? DBL_MIN : (min.y - ray.o.y) * (1 / ray.d.y);
+        const double ty1 = (ray.d.y == 0) ? DBL_MAX : (max.y - ray.o.y) * (1 / ray.d.y);
+        const double tz0 = (ray.d.z == 0) ? DBL_MIN : (min.z - ray.o.z) * (1 / ray.d.z);
+        const double tz1 = (ray.d.z == 0) ? DBL_MAX : (max.z - ray.o.z) * (1 / ray.d.z);
+        // const float tx0 = (min.x - rayorix) * rayInvDirx;
+        // const float tx1 = (max.x - rayorix) * rayInvDirx;
+        // const float ty0 = (min.y - rayoriy) * rayInvDiry;
+        // const float ty1 = (max.y - rayoriy) * rayInvDiry;
+        // const float tz0 = (min.z - rayoriz) * rayInvDirz;
+        // const float tz1 = (max.z - rayoriz) * rayInvDirz;
+        
+        if(fmax(fmax(tx0, ty0), tz0) < fmin(fmin(tx1, ty1), tz1)) return true;
         return false;
        
     }
@@ -120,16 +102,6 @@ __global__ void raytracing(uchar4* data, Octree* octree, Ray* rays, int width, i
     if(x >= width || y >= height) return;
 
     int pid = y * width + x;
-    // if(x >= width / 2 - 10 && x <= width /2 + 10 &&
-    //    y >= height / 2 - 10 && y <= height /2 + 10) {
-    //     data[pid].x = 255;
-    //     data[pid].y = 0;
-    //     data[pid].z = 255;
-    //     data[pid].w = 255;
-    //     return;    
-    // }
-
-
     if(octree->traverse(rays[pid])) {
         data[pid].x = 255;
         data[pid].y = 255;
@@ -137,8 +109,7 @@ __global__ void raytracing(uchar4* data, Octree* octree, Ray* rays, int width, i
         data[pid].w = 255;
         return;    
     }
-    // printf("max : %f, %f, %f\n", octree->max.x, octree->max.y, octree->max.z);
-    // data[pid].x = (unsigned char)value;
+
     data[pid].x = (unsigned char)(__saturatef(rays[pid].d.x) * 255.0f);
     data[pid].y = (unsigned char)(__saturatef(rays[pid].d.y) * 255.0f);
     data[pid].z = (unsigned char)(__saturatef(rays[pid].d.z) * 255.0f);
@@ -151,21 +122,30 @@ __global__ void raytracing(uchar4* data, Octree* octree, Ray* rays, int width, i
 //     octree = new Octree(make_float3(0, 0, 0), make_float3(1.28, 1.28, 1.28), 0.01);
 // }
 
+__global__ void setOctree(thrust::device_ptr<Octree*> octree) {
+
+    
+
+}
+
 
 int main() {
 
-    Octree* octree = new Octree(make_float3(-0.5, -0.5, -0.5), make_float3(0.5, 0.5, 0.5), 0.01);
+    Octree* octree = new Octree(make_double3(-0.5, -0.5, -0.5), make_double3(0.5, 0.5, 0.5), 0.01);
     Octree* d_octree;
     cudaMalloc((void**)&d_octree, sizeof(Octree));
     cudaMemcpy(d_octree, octree, sizeof(Octree), cudaMemcpyHostToDevice);
     // setOctree<<<1, 1>>>(d_octree);
 
+    thrust::device_ptr<Octree*> td_octree;
+
+
     // int N = 1;
     for(int N = 0; N < 160; N++){
-    DepthNpy depth("C:/DATASET/dataset/armadillo/depth/" + std::to_string(N) + ".npy");
-    Image image("C:/DATASET/dataset/armadillo/color/" + std::to_string(N) + ".png");
-    Intrinsic intrinsic("C:/DATASET/dataset/armadillo/intrinsic/" + std::to_string(N) + ".txt");
-    Pose pose("C:/DATASET/dataset/armadillo/pose/" + std::to_string(N) + ".txt");
+    DepthNpy depth("C:/DATASET/armadillo/depth/" + std::to_string(N) + ".npy");
+    Image image("C:/DATASET/armadillo/color/" + std::to_string(N) + ".png");
+    Intrinsic intrinsic("C:/DATASET/armadillo/intrinsic/" + std::to_string(N) + ".txt");
+    Pose pose("C:/DATASET/armadillo/pose/" + std::to_string(N) + ".txt");
 
     int width = depth.width();
     int height = depth.height();
