@@ -47,12 +47,6 @@ public:
         const double ty1 = (ray.d.y == 0) ? DBL_MAX : (max.y - ray.o.y) * (1 / ray.d.y);
         const double tz0 = (ray.d.z == 0) ? DBL_MIN : (min.z - ray.o.z) * (1 / ray.d.z);
         const double tz1 = (ray.d.z == 0) ? DBL_MAX : (max.z - ray.o.z) * (1 / ray.d.z);
-        // const float tx0 = (min.x - rayorix) * rayInvDirx;
-        // const float tx1 = (max.x - rayorix) * rayInvDirx;
-        // const float ty0 = (min.y - rayoriy) * rayInvDiry;
-        // const float ty1 = (max.y - rayoriy) * rayInvDiry;
-        // const float tz0 = (min.z - rayoriz) * rayInvDirz;
-        // const float tz1 = (max.z - rayoriz) * rayInvDirz;
         
         if(fmax(fmax(tx0, ty0), tz0) < fmin(fmin(tx1, ty1), tz1)) return true;
         return false;
@@ -95,14 +89,14 @@ __global__ void generateRays(Ray* rays, int width, int height, double* intrinsic
 
 }
 
-__global__ void raytracing(uchar4* data, Octree* octree, Ray* rays, int width, int height) {
+__global__ void raytracing(uchar4* data, thrust::device_ptr<Octree*> octree, Ray* rays, int width, int height) {
 
     int x = blockDim.x * blockIdx.x + threadIdx.x;
     int y = blockDim.y * blockIdx.y + threadIdx.y;
     if(x >= width || y >= height) return;
 
     int pid = y * width + x;
-    if(octree->traverse(rays[pid])) {
+    if(((Octree*)(*octree))->traverse(rays[pid])) {
         data[pid].x = 255;
         data[pid].y = 255;
         data[pid].z = 255;
@@ -116,76 +110,61 @@ __global__ void raytracing(uchar4* data, Octree* octree, Ray* rays, int width, i
     data[pid].w = 255;
 }
 
-// __global__ void setOctree(Octree* octree) {
-//     if(threadIdx.x != 0) return;
-
-//     octree = new Octree(make_float3(0, 0, 0), make_float3(1.28, 1.28, 1.28), 0.01);
-// }
-
 __global__ void setOctree(thrust::device_ptr<Octree*> octree) {
+    if(threadIdx.x != 0) return;
 
-    
+    *octree = new Octree(make_double3(-0.5, -0.5, -0.5), make_double3(0.5, 0.5, 0.5), 0.01);
 
 }
 
-
 int main() {
 
-    Octree* octree = new Octree(make_double3(-0.5, -0.5, -0.5), make_double3(0.5, 0.5, 0.5), 0.01);
-    Octree* d_octree;
-    cudaMalloc((void**)&d_octree, sizeof(Octree));
-    cudaMemcpy(d_octree, octree, sizeof(Octree), cudaMemcpyHostToDevice);
-    // setOctree<<<1, 1>>>(d_octree);
+    thrust::device_ptr<Octree*> d_octree;
+    d_octree = thrust::device_new<Octree*>();
+    setOctree<<<1, 1>>>(d_octree);
 
-    thrust::device_ptr<Octree*> td_octree;
-
-
-    // int N = 1;
     for(int N = 0; N < 160; N++){
-    DepthNpy depth("C:/DATASET/armadillo/depth/" + std::to_string(N) + ".npy");
-    Image image("C:/DATASET/armadillo/color/" + std::to_string(N) + ".png");
-    Intrinsic intrinsic("C:/DATASET/armadillo/intrinsic/" + std::to_string(N) + ".txt");
-    Pose pose("C:/DATASET/armadillo/pose/" + std::to_string(N) + ".txt");
+        DepthNpy depth("C:/DATASET/armadillo/depth/" + std::to_string(N) + ".npy");
+        Image image("C:/DATASET/armadillo/color/" + std::to_string(N) + ".png");
+        Intrinsic intrinsic("C:/DATASET/armadillo/intrinsic/" + std::to_string(N) + ".txt");
+        Pose pose("C:/DATASET/armadillo/pose/" + std::to_string(N) + ".txt");
 
-    int width = depth.width();
-    int height = depth.height();
+        int width = depth.width();
+        int height = depth.height();
 
+        dim3 threadLayout(32, 32);
+        dim3 gridLayout(width / 32 + 1, height / 32 + 1);
 
-    dim3 threadLayout(32, 32);
-    dim3 gridLayout(width / 32 + 1, height / 32 + 1);
+        Ray* rays;
+        cudaMalloc((void**)&rays, sizeof(Ray) * width * height);
 
-    Ray* rays;
-    cudaMalloc((void**)&rays, sizeof(Ray) * width * height);
+        uchar4* data;
+        cudaMalloc((void**)&data, sizeof(uchar4) * width * height);
 
-    uchar4* data;
-    cudaMalloc((void**)&data, sizeof(uchar4) * width * height);
+        double* d_intrinsic;
+        cudaMalloc((void**)&d_intrinsic, sizeof(double) * 9);
+        cudaMemcpy(d_intrinsic, intrinsic.data, sizeof(double) * 9, cudaMemcpyHostToDevice);
 
-    double* d_intrinsic;
-    cudaMalloc((void**)&d_intrinsic, sizeof(double) * 9);
-    cudaMemcpy(d_intrinsic, intrinsic.data, sizeof(double) * 9, cudaMemcpyHostToDevice);
+        double* d_pose;
+        cudaMalloc((void**)&d_pose, sizeof(double) * 16);
+        cudaMemcpy(d_pose, pose.data, sizeof(double) * 16, cudaMemcpyHostToDevice);
 
-    double* d_pose;
-    cudaMalloc((void**)&d_pose, sizeof(double) * 16);
-    cudaMemcpy(d_pose, pose.data, sizeof(double) * 16, cudaMemcpyHostToDevice);
+        generateRays<<<gridLayout, threadLayout>>>(rays, width, height, d_intrinsic, d_pose);
+        raytracing<<<gridLayout, threadLayout>>>(data, d_octree, rays, width, height);
+        cudaDeviceSynchronize();
 
-    generateRays<<<gridLayout, threadLayout>>>(rays, width, height, d_intrinsic, d_pose);
-    raytracing<<<gridLayout, threadLayout>>>(data, d_octree, rays, width, height);
-    cudaDeviceSynchronize();
+        uchar4* output = new uchar4[width * height];
+        cudaMemcpy(output, data, sizeof(uchar4) * width * height, cudaMemcpyDeviceToHost);
 
-    uchar4* output = new uchar4[width * height];
-    cudaMemcpy(output, data, sizeof(uchar4) * width * height, cudaMemcpyDeviceToHost);
+        stbi_write_png(("data/outputtest" + std::to_string(N) + ".png").c_str(), width, height, 4, (void*)output, width * 4);
 
-    stbi_write_png(("data/outputtest" + std::to_string(N) + ".png").c_str(), width, height, 4, (void*)output, width * 4);
-
-    delete[] output;
-    cudaFree(data);
-    cudaFree(rays);
-    cudaFree(d_pose);
-    cudaFree(d_intrinsic);
+        delete[] output;
+        cudaFree(data);
+        cudaFree(rays);
+        cudaFree(d_pose);
+        cudaFree(d_intrinsic);
     }
-
-
-    cudaFree(d_octree);
+    thrust::device_free(d_octree);
     return 0;
 
 }
