@@ -6,6 +6,8 @@
 struct Ray {
 
     double3 o, d;
+    double value = 0;
+    double transparent = 1;
 
     __host__ __device__ Ray(double3 o, double3 d) : o(o), d(d) { }
 

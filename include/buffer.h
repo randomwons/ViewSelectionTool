@@ -12,6 +12,7 @@
 template <typename T>
 class Buffer {
 public:
+    Buffer() {}
     Buffer(size_t size) : size(size) {
         d_data = thrust::device_malloc<T>(size);
     }
@@ -27,10 +28,13 @@ public:
         d_data = thrust::device_malloc<T>(data.size());
         thrust::copy(data.begin(), data.end(), d_data);
     }
-
     ~Buffer() {
         if(d_data) thrust::device_free(d_data);
     }
+    void alloc(size_t size) {
+        d_data = thrust::device_malloc<T>(size);
+    }
+
 
     T* get() const { return d_data.get(); }
 

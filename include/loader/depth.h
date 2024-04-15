@@ -1,6 +1,7 @@
 #ifndef __DEPTH_H__
 #define __DEPTH_H__
 
+#include <cuda_runtime.h>
 #include "npy.hpp"
 #include <string>
 
@@ -9,33 +10,23 @@
 
 class DepthNpy {
 public:
-    DepthNpy(const std::string& filepath) {
+    __host__ DepthNpy() = default;
+    __host__ DepthNpy(const std::string& filepath) {
         npy::npy_data<double> d = npy::read_npy<double>(filepath);
-        data = d.data;
+        // data = d.data;
+        data = d.data.data();
 
         std::vector<unsigned long> shape = d.shape;
         width_ = shape[1];
         height_ = shape[0];
     }
-    void save_as_png(const std::string& savepath) {
-        
-        double max = -1;
-        for(int i = 0; i < data.size(); i++){
-            if(max < data[i]) max = data[i];
-        }
-        std::vector<uint8_t> image(data.size());
-        for(int i = 0; i < image.size(); i++){
-            image[i] = (uint8_t)(data[i] / max * 255.f);
-        }
 
-        stbi_write_png(savepath.c_str(), width_, height_, 1, image.data(), width_);
-    }
-
-    int width() const { return width_; }
-    int height() const { return height_; }
+    __host__ __device__ int width() const { return width_; }
+    __host__ __device__ int height() const { return height_; }
 
 private:
-    std::vector<double> data;
+    double* data;
+    // std::vector<double> data;
     int width_, height_;
 
 };
