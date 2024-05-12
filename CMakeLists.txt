@@ -16,7 +16,6 @@ add_executable(${PROJECT_NAME}
     src/common.cpp
     src/shader/shader.cpp
     src/shader/program.cpp
-    src/geometry/cube.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} ${OCTOMAP_LIBRARIES} OpenMP::OpenMP_CXX glad::glad glfw)
