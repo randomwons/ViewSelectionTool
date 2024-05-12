@@ -8,6 +8,37 @@
 #include "loader/intrinsic.h"
 #include "loader/pose.h"
 
+void updateOctree(octomap::OcTree* octree, const Depth& depth, const Intrinsic& intrinsic, const Pose& pose) {
+
+    octomap::point3d origin(
+        -(pose.data[0] * pose.data[3] + pose.data[4] * pose.data[7] + pose.data[8] * pose.data[11]),
+        -(pose.data[1] * pose.data[3] + pose.data[5] * pose.data[7] + pose.data[9] * pose.data[11]),
+        -(pose.data[2] * pose.data[3] + pose.data[6] * pose.data[7] + pose.data[10] * pose.data[11])
+    );
+
+    octomap::Pointcloud pc;
+    for(int y = 0; y < depth.height(); y++){
+        for(int x = 0; x < depth.width(); x++) {
+            double d = depth.data[y * depth.width() + x];
+            if(d == 0) continue;
+            
+            double dx = (x - intrinsic.cx()) / intrinsic.fx();
+            double dy = (y - intrinsic.cy()) / intrinsic.fy();
+            double dz = 1;
+
+            octomap::point3d dir = octomap::point3d(
+                pose.data[0] * dx + pose.data[4] * dy + pose.data[8] * dz,
+                pose.data[1] * dx + pose.data[5] * dy + pose.data[9] * dz,
+                pose.data[2] * dx + pose.data[6] * dy + pose.data[10] * dz
+            );
+            dir.normalized();
+            
+            pc.push_back(ray.o + ray.d * d);
+        }
+    }
+    octree->insertPointCloud(pc, origin);
+}
+
 void Window::frameBufferSizeCallback(GLFWwindow* window, int width, int height){
     Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if(win) win->reshape(width, height);
@@ -47,7 +78,8 @@ void Window::keyCallback(int key, int scancode, int action, int mods) {
         Intrinsic intrinsic(datapath + "/intrinsic/" + std::to_string(0) + ".txt");
         Pose pose(datapath + "/pose/" + std::to_string(0) + ".txt");
 
-        std::cout << intrinsic.fx() << std::endl;
+        updateOctree(m_tree.get(), depth, intrinsic, pose);
+        std::cout << m_tree->getNumLeafNodes() << std::endl;
 
     }
 
