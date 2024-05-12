@@ -89,6 +89,7 @@ bool Window::initialize(const int width, const int height, const char* title) {
     glfwSetWindowUserPointer(m_window, this);
     frameBufferSizeCallback(m_window, width, height);
     glfwSetFramebufferSizeCallback(m_window, frameBufferSizeCallback);
+    glfwSetKeyCallback(m_window, keyCallbackWindow);
 
     if(!loadShaderProgram()){
         return false;
