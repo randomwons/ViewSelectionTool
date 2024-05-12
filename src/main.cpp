@@ -4,7 +4,7 @@
 
 int main(){
 
-    auto window = Window::create(1280, 720, "test");
+    auto window = Window::create(640, 480, "test");
     if(!window) {
         printf("Terminate program\n");
         return 0;
