@@ -106,6 +106,12 @@ void Window::keyCallback(int key, int scancode, int action, int mods) {
         updateOctree(m_tree.get(), depth, intrinsic, pose);
         getOcTreeVertices(m_tree.get(), vertices);
         
+        m_program->use();
+        m_program->setAttribute("projection", m_projection);
+        glm::mat4 model(1.0f);
+        m_program->setAttribute("model", model);
+        m_program->setAttribute("view", m_view);
+
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices.data(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
