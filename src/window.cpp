@@ -2,11 +2,22 @@
 #include <algorithm>
 
 #include <chrono>
+#include <string>
+
+#include "loader/depth.h"
+#include "loader/intrinsic.h"
+#include "loader/pose.h"
 
 void Window::frameBufferSizeCallback(GLFWwindow* window, int width, int height){
     Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if(win) win->reshape(width, height);
 }
+
+void Window::keyCallbackWindow(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if(win) win->keyCallback(key, scancode, action, mods);
+}
+
 
 void Window::reshape(int width, int height){
     m_width = width;
@@ -24,6 +35,27 @@ std::unique_ptr<Window> Window::create(const int width, const int height, const 
         return nullptr;
     }
     return std::move(window);
+
+}
+
+void Window::keyCallback(int key, int scancode, int mods) {
+
+    if(key == GLFW_KEY_U && action == GLFW_PRESS) {
+
+        std::string datapath = "/home/vava/Dataset/armadillo";
+        Depth depth(datapath + "/depth/" + std::to_string(0) + ".npy");
+        Intrinsic intrinsic(datapath + "/intrinsic/" + std::to_string(0) + ".txt");
+        Pose pose(datapath + "/pose/" + std::to_string(0) + ".txt");
+
+        std::cout << intrinsic.fx() << std::endl;
+
+    }
+
+}
+
+
+void Window::processInput() {
+
 
 }
 

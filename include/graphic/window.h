@@ -11,8 +11,10 @@
 class Window {
 public:
     static std::unique_ptr<Window> create(const int height, const int width, const char* title);
-
+    
     static void frameBufferSizeCallback(GLFWwindow* window, int width, int height);
+    static void keyCallbackWindow(GLFWwindow* window, int key, int scancode, int action, int mods);
+
 
     bool shouldClose() const {return glfwWindowShouldClose(m_window); }
 
@@ -20,6 +22,8 @@ public:
 
 private:
     Window() {}
+    void processInput();
+    void keyCallback(int key, int scancode, int action, int mods);
     void reshape(int height, int width);
     bool initialize(const int height, const int width, const char* title);
     bool loadShaderProgram();
