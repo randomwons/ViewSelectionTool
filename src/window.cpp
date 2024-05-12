@@ -38,7 +38,7 @@ std::unique_ptr<Window> Window::create(const int width, const int height, const 
 
 }
 
-void Window::keyCallback(int key, int scancode, int mods) {
+void Window::keyCallback(int key, int scancode, int action, int mods) {
 
     if(key == GLFW_KEY_U && action == GLFW_PRESS) {
 
