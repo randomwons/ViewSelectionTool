@@ -169,9 +169,9 @@ bool Window::initialize(const int width, const int height, const char* title) {
 
 
     glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    GLint posAttrib = glGetAttribLocation(program, "aPos");
+    GLint posAttrib = glGetAttribLocation(m_program->get(), "aPos");
     glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(posAttrib);
 
