@@ -33,7 +33,7 @@ void updateOctree(octomap::OcTree* octree, const Depth& depth, const Intrinsic& 
             );
             dir.normalized();
             
-            pc.push_back(ray.o + ray.d * d);
+            pc.push_back(origin + dir * d);
         }
     }
     octree->insertPointCloud(pc, origin);
