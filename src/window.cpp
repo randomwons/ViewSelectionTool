@@ -34,9 +34,9 @@ bool Window::initialize(const int width, const int height, const char* title) {
         return false;
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
 
     m_window = glfwCreateWindow(width, height, title, nullptr, nullptr);
     if(!m_window) {
@@ -46,7 +46,7 @@ bool Window::initialize(const int width, const int height, const char* title) {
     }
     glfwMakeContextCurrent(m_window);
 
-    if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
+    if(!gladLoadGLES2((GLADloadfunc)glfwGetProcAddress)){
         printf("Failed to initialize glad\n");
         glfwTerminate();
         return false;
@@ -79,16 +79,6 @@ bool Window::initialize(const int width, const int height, const char* title) {
     glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
     m_view = glm::lookAt(cameraPos, cameraTarget, upVector);
 
-    m_cubes = std::make_shared<Cube>();
-
-    for(int i = 1; i < 101; i++){
-        for(int j = -50; j < 50; j++) {
-            for(int k = -50; k < 50; k++){
-                m_cubes->addCube(glm::mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, (float)k * 0.2, (float)j * 0.2, -(float)i * 0.2, 1.0));
-            }
-        }
-    }
-
     return true;
 
 }
@@ -97,18 +87,6 @@ void Window::render() {
     glfwPollEvents();
     glClearColor(0.1, 0.2, 0.3, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    auto start = std::chrono::high_resolution_clock::now();
-    // m_cubes->sortByCamera(glm::vec3(glm::inverse(m_view)[3]));
-    auto end = std::chrono::high_resolution_clock::now();
-    auto elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-    printf("Sorting elapsed time : %fms\n", elapsed_time.count() / 1000000.);
-
-    m_cubes->draw(m_program, m_projection, m_view);
-    // for(auto& cube : m_cubes){
-    //     cube->draw(m_program, m_projection, m_view);
-    // }
-
 
     glfwSwapBuffers(m_window);
 }

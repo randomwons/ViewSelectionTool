@@ -5,8 +5,6 @@
 #include "shader/shader.h"
 #include "shader/program.h"
 
-#include "geometry/cube.h"
-
 class Window {
 public:
     static std::unique_ptr<Window> create(const int height, const int width, const char* title);
@@ -23,8 +21,6 @@ private:
     bool initialize(const int height, const int width, const char* title);
     bool loadShaderProgram();
 
-    void sortObjectsByCameraDistance();
-
     std::shared_ptr<Program> m_program;
     const char* title;
     uint32_t m_height;
@@ -33,8 +29,6 @@ private:
     glm::mat4 m_view;
 
     GLFWwindow* m_window;
-
-    std::shared_ptr<Cube> m_cubes;
     
 };
 
