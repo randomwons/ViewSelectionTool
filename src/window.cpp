@@ -74,10 +74,16 @@ bool Window::initialize(const int width, const int height, const char* title) {
 
     glfwSwapInterval(0);
 
+    m_tree = std::make_unique<octomap::OcTree>(0.01);
+
+
     glm::vec3 cameraPos = glm::vec3(3.0f, 5.0f, 15.0f);
     glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
     m_view = glm::lookAt(cameraPos, cameraTarget, upVector);
+
+
+
 
     return true;
 

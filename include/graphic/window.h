@@ -5,6 +5,9 @@
 #include "shader/shader.h"
 #include "shader/program.h"
 
+#include "octomap/octomap.h"
+#include "octomap/OcTree.h"
+
 class Window {
 public:
     static std::unique_ptr<Window> create(const int height, const int width, const char* title);
@@ -30,6 +33,8 @@ private:
 
     GLFWwindow* m_window;
     
+    std::unique_ptr<octomap::OcTree> m_tree;
+
 };
 
 
