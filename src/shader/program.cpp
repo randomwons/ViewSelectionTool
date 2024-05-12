@@ -11,6 +11,10 @@ bool Program::link(const std::vector<std::shared_ptr<Shader>>& shaders) {
     m_program = glCreateProgram();
     for(auto& shader : shaders)
         glAttachShader(m_program, shader->get());
+    
+    glBindAttribLocation(m_program, 0, "aPos");
+
+    
     glLinkProgram(m_program);
 
     int success = 0;
@@ -21,6 +25,9 @@ bool Program::link(const std::vector<std::shared_ptr<Shader>>& shaders) {
         printf("Failed to link program %s\n", infoLog);
         return false;
     }
+
+    
+
     return true;
 }
 

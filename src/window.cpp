@@ -39,6 +39,31 @@ void updateOctree(octomap::OcTree* octree, const Depth& depth, const Intrinsic& 
     octree->insertPointCloud(pc, origin);
 }
 
+void getOcTreeVertices(const octomap::OcTree* octree, std::vector<GLfloat>& vertices) {
+
+    for (octomap::OcTree::leaf_iterator it = octree->begin_leafs(), end = octree->end_leafs(); it != end; ++it) {
+        float size = (float)it.getSize();
+        float x = (float)it.getX();
+        float y = (float)it.getY();
+        float z = (float)it.getZ();
+
+        // 각 voxel의 vertices 계산
+        GLfloat cubeVertices[] = {
+            x - size / 2, y - size / 2, z + size / 2,  // Top-left
+            x + size / 2, y - size / 2, z + size / 2,  // Top-right
+            x + size / 2, y - size / 2, z - size / 2,  // Bottom-right
+            x - size / 2, y - size / 2, z - size / 2,  // Bottom-left
+            x - size / 2, y + size / 2, z + size / 2,  // Top-left
+            x + size / 2, y + size / 2, z + size / 2,  // Top-right
+            x + size / 2, y + size / 2, z - size / 2,  // Bottom-right
+            x - size / 2, y + size / 2, z - size / 2   // Bottom-left
+        };
+
+        vertices.insert(vertices.end(), std::begin(cubeVertices), std::end(cubeVertices));
+    }
+
+}
+
 void Window::frameBufferSizeCallback(GLFWwindow* window, int width, int height){
     Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if(win) win->reshape(width, height);
@@ -79,8 +104,11 @@ void Window::keyCallback(int key, int scancode, int action, int mods) {
         Pose pose(datapath + "/pose/" + std::to_string(0) + ".txt");
 
         updateOctree(m_tree.get(), depth, intrinsic, pose);
-        std::cout << m_tree->getNumLeafNodes() << std::endl;
-
+        getOcTreeVertices(m_tree.get(), vertices);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
 }
@@ -139,6 +167,18 @@ bool Window::initialize(const int width, const int height, const char* title) {
 
     glfwSwapInterval(0);
 
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    GLint posAttrib = glGetAttribLocation(program, "aPos");
+    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+    glEnableVertexAttribArray(posAttrib);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
+
     m_tree = std::make_unique<octomap::OcTree>(0.01);
 
 
@@ -146,6 +186,8 @@ bool Window::initialize(const int width, const int height, const char* title) {
     glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
     m_view = glm::lookAt(cameraPos, cameraTarget, upVector);
+
+    
 
 
 

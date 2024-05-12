@@ -39,6 +39,11 @@ private:
     
     std::unique_ptr<octomap::OcTree> m_tree;
 
+    uint32_t vao;
+    uint32_t vbo;
+
+    std::vector<GLfloat> vertices;
+
 };
 
 
