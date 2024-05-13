@@ -20,7 +20,7 @@ int main(){
         double deltaTime = currentTime - lastTime;
         frameCount++;
         if(deltaTime >= 1.0) {
-            std::cout << "FPS : " << frameCount << std::endl;
+            std::cout << "FPS : " << frameCount << ", Count : " << window->count << std::endl;
             frameCount = 0;
             lastTime = currentTime;
         }

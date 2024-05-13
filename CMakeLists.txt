@@ -13,9 +13,12 @@ include_directories(include)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/window.cpp
+    src/draw.cpp
+    src/input.cpp
     src/common.cpp
     src/shader/shader.cpp
     src/shader/program.cpp
+    src/geometry/myoctree.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} ${OCTOMAP_LIBRARIES} OpenMP::OpenMP_CXX glad::glad glfw)
